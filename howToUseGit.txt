@@ -1,0 +1,33 @@
+//初期化-----------------------------------------------------------------
+//SSHキーなどの作成は下のページ参照
+https://inno-tech-life.com/dev/infra/git_ssh_github/
+
+ブランチ名は mainにすること（masterではない）
+
+>git init
+カレントディレクトリにローカルリポジトリ作成
+
+
+
+>git remote add {リポジトリ名} {url}
+リモートリポジトリ指定
+urlはgithubの SSH 向けのものを取得すること
+ example
+ git@github.com:SagawaYasumasa/ArduinoHello.git
+
+//-----------------------------------------------------------------------
+
+>git status
+状態確認
+
+>git add .
+カレントディレクトリのファイルをローカルリポジトリに追加
+
+>git commit -m "the commnet"
+ローカルリポジトリにcommit
+
+$git push heatmap
+ (heatmap)はリポジトリ名
+リモートリポジトリにpush
+
+
