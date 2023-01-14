@@ -78,7 +78,12 @@ void loop() {
   if (M5.BtnC.isPressed()) {  //If button C is pressed.
     Serial.printf("function:loop, ButtunC Pressed\n");
     if(connectWiFi()){
-      connectToServer();
+      if(connectToServer()){
+        M5.Lcd.printf("success.\n");
+      } else
+      {
+        M5.Lcd.printf("failed to connect to server.\n");
+      }
     }
     disconnectWiFi();
   }
@@ -94,30 +99,38 @@ bool connectWiFi(){
     if(ret) break;
     M5.Lcd.printf(".");
   }
-  Serial.printf("function:connectWiFi, i=%d,exit(%d)",i,ret);
+  Serial.printf("function:connectWiFi, i=%d,return(%d)\n",i,ret);
   return ret;
 }
 void disconnectWiFi(){
   WiFi.disconnect();
   delay(100);
-  Serial.printf("function:disconnectWiFi, exit");
+  Serial.printf("function:disconnectWiFi, exit\n");
 }
 bool connectToServer(void){
-  bool ret = false;
   const char *server = SERVER_HOST "/heatmap/echo.php";
-  const char *testString = "[{\"CLIENT\",\"ARDUINO\"}]";
+  bool ret = false;
+  int responseCode;
+  int responseSize;
+  String responseString;
+  String msg = "[{\"CLIENT\":\"ARDUINO\"}]";
+
   Serial.printf("function:connectToServer, server=%s\n",server);
 
   HTTPClient http;
   http.begin(server);
   http.addHeader("Content-Type","application/x-www-form-urlencoded");
-  http.POST(testString);
-  if(http.getString().compareTo(testString)==0){
-    ret = true;
-  } else {
-    ret = false;
-  } 
-//  Serial.printf("function:connectToServer, ret=%d, getString=%s\n",ret,http.getString());
+  responseCode = http.POST(msg.c_str());
+  if(responseCode == 200){
+    responseSize = http.getSize();
+    responseString = http.getString();
+    Serial.println(responseString);
+    if( responseString.compareTo(msg) == 0 ){
+      //success
+      ret = true;
+    }   
+  }
   http.end();
+  Serial.printf("function:connectToServer, return(%d)\n",ret);
   return ret;
 }
