@@ -1,3 +1,6 @@
+#define MAJOR_VERSION 1
+#define MINOR_VERSION 0
+
 /*
 *******************************************************************************
 * Copyright (c) 2021 by M5Stack
@@ -13,24 +16,46 @@
 #include <M5Core2.h>
 #include "WiFi.h"
 
+hw_timer_t *timer = NULL;
+volatile unsigned long gTimerCounter = 0;
+
 void setup() {
-  M5.begin();  //Init M5Stack.  初始化M5Stack
+  M5.begin();  //Init M5Stack.
+  // Init Timer
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer,&onTimer,true);
+  timerAlarmWrite(timer,1000*1000,true);      // 1000msec interval
+  timerAlarmEnable(timer);
+  
   WiFi.mode(
       WIFI_STA);  // Set WiFi to station mode and disconnect from an AP if it was previously connected.  将WiFi设置为站模式，如果之前连接过AP，则断开连接
   WiFi.disconnect();  //Turn off all wifi connections.  关闭所有wifi连接
   delay(100);         //100 ms delay.  延迟100ms
-  M5.Lcd.print("WIFI SCAN");  //Screen print string.  屏幕打印字符串
+  M5.Lcd.print("WIFI SCAN\n");  //Screen print string.  屏幕打印字符串
+  M5.Lcd.printf("version %d.%02d\n",MAJOR_VERSION,MINOR_VERSION);
+  Serial.print("hello\n");
+  delay(1000);
+}
+
+void onTimer(){
+  gTimerCounter++;
+//  Serial.printf("onTimer %d\n",gTimerCounter);
 }
 
 void loop() {
+  unsigned long startTime;
+  unsigned long finishTime;
   M5.Lcd.setCursor(0, 0);  //Set the cursor at (0,0).  将光标设置在(0,0)处
   M5.Lcd.println("Please press Btn.A to (re)scan");
   M5.update();  //Check the status of the key.  检测按键的状态
   if (M5.BtnA.isPressed()) {  //If button A is pressed.  如果按键A按下
     M5.Lcd.clear();           //Clear the screen.  清空屏幕
     M5.Lcd.println("scan start");
+    startTime = millis();
     int n =
-        WiFi.scanNetworks();  //return the number of networks found.  返回发现的网络数
+//        WiFi.scanNetworks(false, false, false, 100);  //return the number of networks found. Active Scan
+        WiFi.scanNetworks(false, false, true,100);  //return the number of networks found. Passive Scan
+    finishTime =millis();
     if (n == 0) {  //If no network is found.  如果没有找到网络
       M5.Lcd.println("no networks found");
     } else {  //If have network is found.  找到网络
@@ -42,6 +67,7 @@ void loop() {
         M5.Lcd.print(WiFi.SSID(i));
         M5.Lcd.printf("(%d)", WiFi.RSSI(i));
         M5.Lcd.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
+        M5.Lcd.printf("Start=%d, Finish=%d, diff=%d\n",startTime,finishTime,finishTime-startTime);
         delay(10);
       }
     }
