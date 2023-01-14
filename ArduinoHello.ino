@@ -1,6 +1,6 @@
 #define MAJOR_VERSION 1
 #define MINOR_VERSION 0
-
+#include "private.h"
 /*
 *******************************************************************************
 * Copyright (c) 2021 by M5Stack
@@ -33,7 +33,7 @@ void setup() {
   delay(100);         //100 ms delay.  延迟100ms
   M5.Lcd.print("WIFI SCAN\n");  //Screen print string.  屏幕打印字符串
   M5.Lcd.printf("version %d.%02d\n",MAJOR_VERSION,MINOR_VERSION);
-  Serial.print("hello\n");
+  Serial.printf("%s/n",MYNAME);
   delay(1000);
 }
 
@@ -54,7 +54,7 @@ void loop() {
     startTime = millis();
     int n =
 //        WiFi.scanNetworks(false, false, false, 100);  //return the number of networks found. Active Scan
-        WiFi.scanNetworks(false, false, true,100);  //return the number of networks found. Passive Scan
+        WiFi.scanNetworks(false, false, true,150);  //return the number of networks found. Passive Scan
     finishTime =millis();
     if (n == 0) {  //If no network is found.  如果没有找到网络
       M5.Lcd.println("no networks found");
