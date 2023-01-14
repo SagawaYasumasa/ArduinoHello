@@ -14,7 +14,9 @@
 *******************************************************************************
 */
 #include <M5Core2.h>
-#include "WiFi.h"
+#include <WiFi.h>
+#include <HTTPClient.h>
+
 
 hw_timer_t *timer = NULL;
 volatile unsigned long gTimerCounter = 0;
@@ -33,7 +35,7 @@ void setup() {
   delay(100);         //100 ms delay.  延迟100ms
   M5.Lcd.print("WIFI SCAN\n");  //Screen print string.  屏幕打印字符串
   M5.Lcd.printf("version %d.%02d\n",MAJOR_VERSION,MINOR_VERSION);
-  Serial.printf("%s/n",MYNAME);
+  Serial.printf("Hello, %s.\n",MYNAME);
   delay(1000);
 }
 
@@ -73,4 +75,49 @@ void loop() {
     }
     delay(1000);
   }
+  if (M5.BtnC.isPressed()) {  //If button C is pressed.
+    Serial.printf("function:loop, ButtunC Pressed\n");
+    if(connectWiFi()){
+      connectToServer();
+    }
+    disconnectWiFi();
+  }
+}
+bool connectWiFi(){
+  bool ret = false;
+  int i;
+  
+  WiFi.begin(HOME_SSID, HOME_SSID_PASS);    
+  for(i=0;i<60;i++){
+    delay(100);
+    ret = (WiFi.status() == WL_CONNECTED);
+    if(ret) break;
+    M5.Lcd.printf(".");
+  }
+  Serial.printf("function:connectWiFi, i=%d,exit(%d)",i,ret);
+  return ret;
+}
+void disconnectWiFi(){
+  WiFi.disconnect();
+  delay(100);
+  Serial.printf("function:disconnectWiFi, exit");
+}
+bool connectToServer(void){
+  bool ret = false;
+  const char *server = SERVER_HOST "/heatmap/echo.php";
+  const char *testString = "[{\"CLIENT\",\"ARDUINO\"}]";
+  Serial.printf("function:connectToServer, server=%s\n",server);
+
+  HTTPClient http;
+  http.begin(server);
+  http.addHeader("Content-Type","application/x-www-form-urlencoded");
+  http.POST(testString);
+  if(http.getString().compareTo(testString)==0){
+    ret = true;
+  } else {
+    ret = false;
+  } 
+//  Serial.printf("function:connectToServer, ret=%d, getString=%s\n",ret,http.getString());
+  http.end();
+  return ret;
 }
