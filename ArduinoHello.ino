@@ -48,8 +48,6 @@ void onTimer(){
 }
 
 void loop() {
-  unsigned long startTime;
-  unsigned long finishTime;
   M5.Lcd.setCursor(0, 0);  //Set the cursor at (0,0).  将光标设置在(0,0)处
   M5.Lcd.println("Please press Btn.A to (re)scan");
   M5.update();  //Check the status of the key.  检测按键的状态
@@ -57,33 +55,46 @@ void loop() {
   SsidData ssidData = SsidData();
 
   // Buton A /////////////////////////////////////////////////////////////
-  if (M5.BtnA.isPressed()) {  //If button A is pressed.  如果按键A按下
-    M5.Lcd.clear();           //Clear the screen.  清空屏幕
+  if (M5.BtnA.isPressed()) {  //If button A is pressed.
+    M5.Lcd.clear();           //Clear the screen.
     M5.Lcd.println("scan start");
-    startTime = millis();
-    int n =
-//        WiFi.scanNetworks(false, false, false, 100);  //return the number of networks found. Active Scan
-        WiFi.scanNetworks(false, false, true,150);  //return the number of networks found. Passive Scan
-    finishTime =millis();
-    if (n == 0) {  //If no network is found.  如果没有找到网络
+//   int n= WiFi.scanNetworks(false, false, false, 100);  //return the number of networks found. Active Scan
+    int n = WiFi.scanNetworks(false, false, true,150);  //return the number of networks found. Passive Scan
+    if (n == 0) {  //If no network is found.
       M5.Lcd.println("no networks found");
-    } else {  //If have network is found.  找到网络
+    } else {  //If have network is found.
       M5.Lcd.printf("networks found:%d\n\n", n);
-      for (
-          int i = 0; i < n;
-          ++i) {  // Print SSID and RSSI for each network found.  打印每个找到的网络的SSID和信号强度
+      for (int i = 0; i < n; ++i) {  // Print SSID and RSSI for each network found.
         M5.Lcd.printf("%d:", i + 1);
         M5.Lcd.print(WiFi.SSID(i));
         M5.Lcd.printf("(%d)", WiFi.RSSI(i));
-        M5.Lcd.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
-        M5.Lcd.printf("Start=%d, Finish=%d, diff=%d\n",startTime,finishTime,finishTime-startTime);
+
+        ssidData.id = i ;
+        WiFi.SSID(i).getBytes((unsigned char *)ssidData.essid,sizeof(ssidData.essid));
+        strcpy(ssidData.bssid,"00:00:00:00:00:00");
+        ssidData.rssi = WiFi.RSSI(i);
+        ssidData.frequency = 0;
+        ssidData.latitude = 43.058095;
+        ssidData.longitude = 144.843528;
+        strcpy(ssidData.datetime,"2023-01-01 00:00:00");
+//        M5.Lcd.printf("fileRecord=%s\n",ssidData.getFileRecord());  
+        writeRecord(ssidData.getFileRecord());
         delay(10);
       }
     }
     delay(1000);
   }
+  // Buton B /////////////////////////////////////////////////////////////
+  if (M5.BtnB.isPressed()) {  //If button B is pressed.
+    M5.Lcd.clear();           //Clear the screen.
+    M5.Lcd.println("dump SD " DATA_FILE_NAME "\n");
+    dumpRecord();
+    delay(1000);
+  }
   // Button C ////////////////////////////////////////////////////////////
   if (M5.BtnC.isPressed()) {  //If button C is pressed.
+    M5.Lcd.clear();           //Clear the screen.
+    M5.Lcd.println("Connect to Server\n");
     Serial.printf("function:loop, ButtunC Pressed\n");
     if(connectWiFi()){
       if(connectToServer()){
@@ -94,17 +105,7 @@ void loop() {
       }
     }
     disconnectWiFi();
-    writeRecord(0,"sems-eap","00:11:22:33:44:55",-60,2400,0.1,0.2);
-    ssidData.id=2;
-    strcpy(ssidData.essid,"sems-eap");
-    strcpy(ssidData.bssid,"11:22:33:44:55:66");
-    ssidData.rssi = -55;
-    ssidData.frequency = 2400;
-    ssidData.latitude = 43.058095;
-    ssidData.longitude = 144.843528;
-    strcpy(ssidData.datetime,"2023-01-15 10:28:10");
-
-    M5.Lcd.printf("fileRecord=%s\n",ssidData.getFileRecord());  
+    deleteFile();
     Serial.printf("function:loop, ButtunC Pressed-exit\n");
   }
 }
@@ -155,15 +156,58 @@ bool connectToServer(void){
   return ret;
 
 }
-int writeRecord(int id, char *ssid, char*bssid, long rssi, int frequency, double latitude, double longitude){
+int writeRecord(char *record){
   int   ret = 0;
   File  file;
   const char* fileName = DATA_FILE_NAME;
 
-  Serial.printf("function:writeRecord, ssid=%s\n",ssid);
+  Serial.printf("function:writeRecord, ssid=%s\n",record);
   file = SD.open(fileName, FILE_APPEND);
-  file.print(ssid);
+  file.print(record);
   file.close();  
   Serial.printf("function:writeRecord, return(%d)\n",ret);
+  return ret;
+}
+int dumpRecord(){
+  int   ret = 0;
+  File  file;
+  int   filePtr = 0;
+  char  c = 0x00;    
+  const char* fileName = DATA_FILE_NAME;
+
+  Serial.printf("function:dumpRecord\n");
+  file = SD.open(fileName, FILE_READ);
+
+  Serial.printf("function:dumpRecord, available=%d\n",file.available());
+  Serial.printf("function:dumpRecord, size=%d\n",file.size());
+  Serial.printf("function:dumpRecord, position=%d\n",file.position());
+  /*
+  while(filePtr < file.available()){
+    c = file.read();
+    if( c == -1) break;
+    Serial.write(c);    
+    filePtr++;
+  }  
+  */
+  while( 0 < file.available()){
+    c = file.read();
+    if( c == -1) break;
+    Serial.write(c);    
+  }  
+  
+ // file.print(record);
+  file.close();  
+  Serial.printf("function:dumpRecord, return(%d)\n",ret);
+
+
+  return ret;
+}
+bool deleteFile(){
+  bool   ret = false;
+  const char* fileName = DATA_FILE_NAME;
+
+  Serial.printf("function:DeleteFile\n");
+  ret = SD.remove(fileName);
+  Serial.printf("function:DeleteFile, return(%d)\n",ret);
   return ret;
 }

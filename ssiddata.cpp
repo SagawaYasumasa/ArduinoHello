@@ -55,8 +55,8 @@ char *SsidData::getFileRecord(){
   _fileRecord[153]=0x0d;
   _fileRecord[154]=0x0a;
   _fileRecord[155]=0x00;
-  dumpByte(_fileRecord,sizeof(_fileRecord));
-  Serial.printf("function:SsidData::getFileRecord, STEPx _fileRecord=%s\n",_fileRecord);
+//  dumpByte(_fileRecord,sizeof(_fileRecord));
+  Serial.printf("function:SsidData::getFileRecord, _fileRecord=%s\n",_fileRecord);
 
   return &_fileRecord[0];
 }
