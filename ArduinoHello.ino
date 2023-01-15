@@ -1,6 +1,8 @@
 #define MAJOR_VERSION 1
 #define MINOR_VERSION 0
+
 #include "private.h"
+#define DATA_FILE_NAME  "/datafile.txt"
 /*
 *******************************************************************************
 * Copyright (c) 2021 by M5Stack
@@ -16,7 +18,8 @@
 #include <M5Core2.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-
+#include "ssiddata.h"
+#include "debugTool.h"
 
 hw_timer_t *timer = NULL;
 volatile unsigned long gTimerCounter = 0;
@@ -50,6 +53,10 @@ void loop() {
   M5.Lcd.setCursor(0, 0);  //Set the cursor at (0,0).  将光标设置在(0,0)处
   M5.Lcd.println("Please press Btn.A to (re)scan");
   M5.update();  //Check the status of the key.  检测按键的状态
+
+  SsidData ssidData = SsidData();
+
+  // Buton A /////////////////////////////////////////////////////////////
   if (M5.BtnA.isPressed()) {  //If button A is pressed.  如果按键A按下
     M5.Lcd.clear();           //Clear the screen.  清空屏幕
     M5.Lcd.println("scan start");
@@ -75,6 +82,7 @@ void loop() {
     }
     delay(1000);
   }
+  // Button C ////////////////////////////////////////////////////////////
   if (M5.BtnC.isPressed()) {  //If button C is pressed.
     Serial.printf("function:loop, ButtunC Pressed\n");
     if(connectWiFi()){
@@ -86,6 +94,18 @@ void loop() {
       }
     }
     disconnectWiFi();
+    writeRecord(0,"sems-eap","00:11:22:33:44:55",-60,2400,0.1,0.2);
+    ssidData.id=2;
+    strcpy(ssidData.essid,"sems-eap");
+    strcpy(ssidData.bssid,"11:22:33:44:55:66");
+    ssidData.rssi = -55;
+    ssidData.frequency = 2400;
+    ssidData.latitude = 43.058095;
+    ssidData.longitude = 144.843528;
+    strcpy(ssidData.datetime,"2023-01-15 10:28:10");
+
+    M5.Lcd.printf("fileRecord=%s\n",ssidData.getFileRecord());  
+    Serial.printf("function:loop, ButtunC Pressed-exit\n");
   }
 }
 bool connectWiFi(){
@@ -132,5 +152,18 @@ bool connectToServer(void){
   }
   http.end();
   Serial.printf("function:connectToServer, return(%d)\n",ret);
+  return ret;
+
+}
+int writeRecord(int id, char *ssid, char*bssid, long rssi, int frequency, double latitude, double longitude){
+  int   ret = 0;
+  File  file;
+  const char* fileName = DATA_FILE_NAME;
+
+  Serial.printf("function:writeRecord, ssid=%s\n",ssid);
+  file = SD.open(fileName, FILE_APPEND);
+  file.print(ssid);
+  file.close();  
+  Serial.printf("function:writeRecord, return(%d)\n",ret);
   return ret;
 }
