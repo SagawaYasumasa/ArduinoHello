@@ -2,7 +2,7 @@
 #define MINOR_VERSION 0
 
 #include "private.h"
-#define DATA_FILE_NAME  "/datafile.txt"
+#define DATA_FILE_NAME  "/json.txt"
 /*
 *******************************************************************************
 * Copyright (c) 2021 by M5Stack
@@ -63,6 +63,7 @@ void loop() {
     if (n == 0) {  //If no network is found.
       M5.Lcd.println("no networks found");
     } else {  //If have network is found.
+      String json="";
       M5.Lcd.printf("networks found:%d\n\n", n);
       for (int i = 0; i < n; ++i) {  // Print SSID and RSSI for each network found.
         M5.Lcd.printf("%d:", i + 1);
@@ -77,10 +78,10 @@ void loop() {
         ssidData.latitude = 43.058095;
         ssidData.longitude = 144.843528;
         strcpy(ssidData.datetime,"2023-01-01 00:00:00");
-//        M5.Lcd.printf("fileRecord=%s\n",ssidData.getFileRecord());  
-        writeRecord(ssidData.getFileRecord());
         delay(10);
+        json = json + ssidData.getJson() + ",\n";
       }
+      writeRecord((char *)json.c_str());
     }
     delay(1000);
   }
@@ -169,38 +170,33 @@ int writeRecord(char *record){
   return ret;
 }
 int dumpRecord(){
-  int   ret = 0;
-  File  file;
-  int   filePtr = 0;
-  char  c = 0x00;    
   const char* fileName = DATA_FILE_NAME;
+  char *buf;  
+  int   ptr = 0;
+  String jsonString;
+  File  file;
 
   Serial.printf("function:dumpRecord\n");
   file = SD.open(fileName, FILE_READ);
-
   Serial.printf("function:dumpRecord, available=%d\n",file.available());
-  Serial.printf("function:dumpRecord, size=%d\n",file.size());
-  Serial.printf("function:dumpRecord, position=%d\n",file.position());
-  /*
-  while(filePtr < file.available()){
-    c = file.read();
-    if( c == -1) break;
-    Serial.write(c);    
-    filePtr++;
-  }  
-  */
+
+  buf = (char *)malloc(file.size()+2);  // top='[' ,tail=0x00
+  buf[ptr++] = '[';                     // start json
   while( 0 < file.available()){
-    c = file.read();
-    if( c == -1) break;
-    Serial.write(c);    
-  }  
-  
- // file.print(record);
+    buf[ptr++] = file.read();
+  }
+  buf[ptr]=0x00;                        // null
   file.close();  
-  Serial.printf("function:dumpRecord, return(%d)\n",ret);
 
+  jsonString = buf;
+  ptr = jsonString.lastIndexOf(',');
+  jsonString.setCharAt(ptr,']');        // replace last ',' to ']'. finish json
+  
+  Serial.println(jsonString);
+  free(buf);
+  Serial.printf("function:dumpRecord, return(%d)\n",jsonString.length());
 
-  return ret;
+  return jsonString.length();
 }
 bool deleteFile(){
   bool   ret = false;

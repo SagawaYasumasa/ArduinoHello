@@ -2,6 +2,7 @@
 #define SsidData_h
 
 #include <M5Core2.h>
+#include <string.h>
 
 #define ESSID_SIZE  32
 #define BSSID_SIZE  18
@@ -34,6 +35,7 @@ class SsidData {
     ~SsidData();
     char *getFileRecord();
     bool  setFileRecord(char *);
+    String  getJson();
 
     int     id;
     char  essid[ESSID_SIZE+1];
@@ -45,5 +47,6 @@ class SsidData {
     char datetime[DATETIME_SIZE+1];
   private:
     char  _fileRecord[155+1];
+    String  _json;
 };
 #endif
