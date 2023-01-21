@@ -58,14 +58,40 @@ void loop() {
   if (M5.BtnA.isPressed()) {  //If button A is pressed.
     M5.Lcd.clear();           //Clear the screen.
     M5.Lcd.println("scan start");
+    // Init Wi-Fi scan 
 //   int n= WiFi.scanNetworks(false, false, false, 100);  //return the number of networks found. Active Scan
-    int n = WiFi.scanNetworks(false, false, true,150);  //return the number of networks found. Passive Scan
-    if (n == 0) {  //If no network is found.
-      M5.Lcd.println("no networks found");
+//    int n = WiFi.scanNetworks(false, false, true,150);  //return the number of networks found. Passive Scan
+    WiFi.scanNetworks(true, false, true,150);     // async,passive mode
+
+    int numberOfWifi = WIFI_SCAN_RUNNING;
+    unsigned long timeout = 0;    
+    // Init GPS scan
+    int gpsStatus = 0;    // 0=scanning gps
+    timeout = millis() + 5000; // 5000 milliseconds
+    while( millis() < timeout ){
+      // Scanning Wi-Fi
+      if(numberOfWifi == WIFI_SCAN_RUNNING){
+        numberOfWifi = WiFi.scanComplete();
+      } 
+      // Scanning GPS
+      if(gpsStatus == 0){
+        gpsStatus = 1; // temporary    
+      }    
+      if((numberOfWifi != WIFI_SCAN_RUNNING) && (gpsStatus !=0)){
+        // WiFi & GPS scan complete, or scan failed
+        break;
+      }        
+      M5.Lcd.printf(".");
+      delay(10);
+    }
+    Serial.printf("\nScan result numberOfWifi=%d,gpsStatus=%d\n",numberOfWifi,gpsStatus);
+
+    if ((numberOfWifi == WIFI_SCAN_RUNNING) ||(numberOfWifi == WIFI_SCAN_FAILED)) {  //If no network is found.
+      M5.Lcd.println("\nno networks found");
     } else {  //If have network is found.
       String json="";
-      M5.Lcd.printf("networks found:%d\n\n", n);
-      for (int i = 0; i < n; ++i) {  // Print SSID and RSSI for each network found.
+      M5.Lcd.printf("\nnetworks found:%d\n\n", numberOfWifi);
+      for (int i = 0; i < numberOfWifi; ++i) {  // Print SSID and RSSI for each network found.
         M5.Lcd.printf("%d:", i + 1);
         M5.Lcd.print(WiFi.SSID(i));
         M5.Lcd.printf("(%d)", WiFi.RSSI(i));
